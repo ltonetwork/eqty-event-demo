@@ -87,23 +87,7 @@ To integrate with the actual EQTY Core library:
 
 3. **Update components** to use real EQTY Core classes instead of mock interfaces
 
-## Project Structure
-
-```
-eqty-event-demo/
-├── src/
-│   ├── components/
-│   │   ├── WalletConnect.tsx      # Wallet connection UI
-│   │   ├── EventChainDemo.tsx     # Event chain testing
-│   │   ├── MessageDemo.tsx        # Message testing
-│   │   └── *.css                  # Component styles
-│   ├── contexts/
-│   │   └── WalletContext.tsx      # Wallet state management
-│   ├── App.tsx                    # Main application
-│   └── App.css                    # Global styles
-├── public/                        # Static assets
-└── package.json                   # Dependencies and scripts
-```
+````
 
 ## Development
 
@@ -128,7 +112,7 @@ eqty-event-demo/
 
    ```json
    { "action": "user_login", "timestamp": 1234567890 }
-   ```
+````
 
 2. **Complex Event Data**:
 
@@ -148,49 +132,6 @@ eqty-event-demo/
 2. **JSON Messages**: Structured data
 3. **Markdown Messages**: Formatted content
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Wallet Connection Fails**:
-
-   - Ensure MetaMask is installed and unlocked
-   - Check if you're on the correct network
-   - Try refreshing the page
-
-2. **Signing Errors**:
-
-   - Make sure your wallet is connected
-   - Check if you have sufficient funds for gas
-   - Verify the message format
-
-3. **Build Errors**:
-   - Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
-   - Check TypeScript errors in the console
-
-### Browser Compatibility
-
-- **Chrome/Edge**: Full support
-- **Firefox**: Full support
-- **Safari**: Full support
-- **Mobile**: Responsive design works on mobile browsers
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
 ## License
 
 MIT License - see LICENSE file for details
-
-## Support
-
-For issues and questions:
-
-- Check the troubleshooting section
-- Review the EQTY Core documentation
-- Open an issue on GitHub
