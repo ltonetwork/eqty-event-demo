@@ -1,46 +1,196 @@
-# Getting Started with Create React App
+# EQTY Event Demo
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A React frontend application for testing the EQTY Core events library with wallet integration.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+- **Wallet Connection**: Connect with MetaMask or other Ethereum wallets
+- **Event Chain Demo**: Create and sign events, build event chains
+- **Message Demo**: Send and sign messages with different content types
+- **Modern UI**: Beautiful, responsive design with glassmorphism effects
+- **Real-time Feedback**: See signatures, hashes, and anchor maps
 
-### `npm start`
+## Getting Started
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### Prerequisites
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+- Node.js (v16 or higher)
+- MetaMask or another Ethereum wallet
+- EQTY Core library (for full integration)
 
-### `npm test`
+### Installation
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+1. **Install dependencies**:
 
-### `npm run build`
+   ```bash
+   npm install
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. **Start the development server**:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+   ```bash
+   npm start
+   ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Open your browser** and navigate to `http://localhost:3000`
 
-### `npm run eject`
+## Usage
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### 1. Connect Your Wallet
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Click "Connect Wallet" to connect your MetaMask or other Ethereum wallet
+- The app will request permission to access your accounts
+- Once connected, you'll see your wallet address and connection status
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+### 2. Test Event Chains
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- **Set Chain ID**: Enter a unique identifier for your event chain
+- **Add Events**: Enter JSON data for your events and click "Add Event"
+- **View Events**: See all events in your chain with timestamps and signatures
+- **Get Anchor Map**: Generate the anchor map for blockchain submission
 
-## Learn More
+### 3. Test Messaging
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Select Message Type**: Choose from text, JSON, or markdown
+- **Send Messages**: Enter message content and click "Send Message"
+- **View Messages**: See all sent messages with signatures and hashes
+- **Anchor Messages**: Anchor message hashes to the blockchain
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Demo Features
+
+### Current Implementation (Mock)
+
+The current demo uses **mock implementations** to simulate EQTY Core functionality:
+
+- **Mock Signing**: Uses wallet's `signMessage()` for demonstration
+- **Mock Hashing**: Generates simple hash-like strings
+- **Mock Anchoring**: Shows what anchor operations would look like
+
+### Full Integration (Future)
+
+To integrate with the actual EQTY Core library:
+
+1. **Link the library**:
+
+   ```bash
+   cd ../eqty-core
+   npm link
+   cd ../eqty-event-demo
+   npm link @eqty-core/events
+   ```
+
+2. **Replace mock imports** with actual EQTY Core:
+
+   ```typescript
+   import { Event, EventChain, Message, EthersSigner } from "@eqty-core/events";
+   ```
+
+3. **Update components** to use real EQTY Core classes instead of mock interfaces
+
+## Project Structure
+
+```
+eqty-event-demo/
+├── src/
+│   ├── components/
+│   │   ├── WalletConnect.tsx      # Wallet connection UI
+│   │   ├── EventChainDemo.tsx     # Event chain testing
+│   │   ├── MessageDemo.tsx        # Message testing
+│   │   └── *.css                  # Component styles
+│   ├── contexts/
+│   │   └── WalletContext.tsx      # Wallet state management
+│   ├── App.tsx                    # Main application
+│   └── App.css                    # Global styles
+├── public/                        # Static assets
+└── package.json                   # Dependencies and scripts
+```
+
+## Development
+
+### Available Scripts
+
+- `npm start` - Start development server
+- `npm run build` - Build for production
+- `npm test` - Run tests
+- `npm run eject` - Eject from Create React App
+
+### Customization
+
+- **Styling**: Modify CSS files in `src/components/` for visual changes
+- **Functionality**: Update TypeScript components for new features
+- **Integration**: Replace mock implementations with actual EQTY Core calls
+
+## Testing Scenarios
+
+### Event Chain Testing
+
+1. **Basic Event Creation**:
+
+   ```json
+   { "action": "user_login", "timestamp": 1234567890 }
+   ```
+
+2. **Complex Event Data**:
+
+   ```json
+   {
+     "action": "data_update",
+     "changes": { "name": "John", "email": "john@example.com" },
+     "metadata": { "version": "1.0", "source": "web" }
+   }
+   ```
+
+3. **Multiple Events**: Add several events to test chain linking
+
+### Message Testing
+
+1. **Text Messages**: Simple text content
+2. **JSON Messages**: Structured data
+3. **Markdown Messages**: Formatted content
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Wallet Connection Fails**:
+
+   - Ensure MetaMask is installed and unlocked
+   - Check if you're on the correct network
+   - Try refreshing the page
+
+2. **Signing Errors**:
+
+   - Make sure your wallet is connected
+   - Check if you have sufficient funds for gas
+   - Verify the message format
+
+3. **Build Errors**:
+   - Clear `node_modules` and reinstall: `rm -rf node_modules && npm install`
+   - Check TypeScript errors in the console
+
+### Browser Compatibility
+
+- **Chrome/Edge**: Full support
+- **Firefox**: Full support
+- **Safari**: Full support
+- **Mobile**: Responsive design works on mobile browsers
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Support
+
+For issues and questions:
+
+- Check the troubleshooting section
+- Review the EQTY Core documentation
+- Open an issue on GitHub

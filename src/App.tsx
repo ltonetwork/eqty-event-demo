@@ -1,25 +1,26 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import "./App.css";
+import WalletConnect from "./components/WalletConnect";
+import EventChainDemo from "./components/EventChainDemo";
+import MessageDemo from "./components/MessageDemo";
+import { WalletProvider } from "./contexts/WalletContext";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <WalletProvider>
+      <div className="App">
+        <header className="App-header">
+          <h1>EQTY Core Events Demo</h1>
+          <p>Test the EQTY Core library with your wallet</p>
+        </header>
+
+        <main className="App-main">
+          <WalletConnect />
+          <EventChainDemo />
+          <MessageDemo />
+        </main>
+      </div>
+    </WalletProvider>
   );
 }
 
