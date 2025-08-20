@@ -131,7 +131,3 @@ To integrate with the actual EQTY Core library:
 1. **Text Messages**: Simple text content
 2. **JSON Messages**: Structured data
 3. **Markdown Messages**: Formatted content
-
-## License
-
-MIT License - see LICENSE file for details

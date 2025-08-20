@@ -1,28 +1,33 @@
 import React, { useState } from "react";
 import { useWallet } from "../contexts/WalletContext";
+import { Event, EventChain, EthersSigner, AnchorClient, AnchorResult } from "@eqty-core/events";
 import "./EventChainDemo.css";
 
-// Mock EQTY Core types for demo (we'll replace these with actual imports later)
-interface Event {
-  id: string;
-  data: any;
-  timestamp: number;
-  signature?: string;
-}
-
-interface EventChain {
-  id: string;
+// Real EQTY Core types
+interface EventChainState {
+  chain: EventChain;
   events: Event[];
-  stateHash?: string;
+  anchorResults: AnchorResult[];
 }
 
 const EventChainDemo: React.FC = () => {
   const { wallet, isConnected } = useWallet();
   const [chainId, setChainId] = useState("demo-chain-123");
   const [eventData, setEventData] = useState("");
-  const [events, setEvents] = useState<Event[]>([]);
+  const [chainState, setChainState] = useState<EventChainState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [anchorClient, setAnchorClient] = useState<AnchorClient | null>(null);
+
+  // Initialize anchor client when wallet connects
+  React.useEffect(() => {
+    if (isConnected && wallet) {
+      // Use the deployed contract address on Base Sepolia
+      const contractAddress = "0x7607af0cea78815c71bbea90110b2c218879354b";
+      const client = new AnchorClient(contractAddress, wallet);
+      setAnchorClient(client);
+    }
+  }, [isConnected, wallet]);
 
   const addEvent = async () => {
     if (!isConnected || !wallet) {
@@ -39,19 +44,27 @@ const EventChainDemo: React.FC = () => {
     setMessage("");
 
     try {
-      // Mock event creation (we'll replace with actual EQTY Core)
-      const newEvent: Event = {
-        id: `event-${Date.now()}`,
-        data: JSON.parse(eventData),
-        timestamp: Date.now(),
-      };
+      // Create EQTY signer
+      const eqtySigner = new EthersSigner(wallet);
 
-      // Mock signing (we'll replace with actual signing)
-      const messageToSign = JSON.stringify(newEvent.data);
-      const signature = await wallet.signMessage(messageToSign);
-      newEvent.signature = signature;
+      // Create or get existing chain
+      let currentChain = chainState?.chain || new EventChain(chainId);
 
-      setEvents((prev) => [...prev, newEvent]);
+      // Create and sign event
+      const event = new Event(JSON.parse(eventData), "application/json");
+      await event.signWith(eqtySigner);
+      
+      // Add to chain
+      currentChain.addEvent(event);
+
+      // Update state
+      const newEvents = [...(chainState?.events || []), event];
+      setChainState({
+        chain: currentChain,
+        events: newEvents,
+        anchorResults: chainState?.anchorResults || [],
+      });
+
       setEventData("");
       setMessage("Event added and signed successfully!");
     } catch (error) {
@@ -66,23 +79,58 @@ const EventChainDemo: React.FC = () => {
   };
 
   const clearEvents = () => {
-    setEvents([]);
+    setChainState(null);
     setMessage("Events cleared");
   };
 
   const getAnchorMap = () => {
-    if (events.length === 0) {
+    if (!chainState || chainState.events.length === 0) {
       setMessage("No events to anchor");
       return;
     }
 
-    // Mock anchor map (we'll replace with actual EQTY Core)
-    const mockAnchor = {
-      key: `stateHash-${chainId}`,
-      value: `lastEventHash-${events[events.length - 1].id}`,
-    };
+    const anchorMap = chainState.chain.getAnchorMap();
+    setMessage(`Anchor Map: ${JSON.stringify(anchorMap.map(a => ({
+      key: a.key.hex,
+      value: a.value.hex
+    })), null, 2)}`);
+  };
 
-    setMessage(`Anchor Map: ${JSON.stringify(mockAnchor, null, 2)}`);
+  const anchorToBlockchain = async () => {
+    if (!chainState || !anchorClient) {
+      setMessage("No chain to anchor or anchor client not ready");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      const anchorMap = chainState.chain.getAnchorMap();
+      const results = await anchorClient.anchorMany(anchorMap);
+
+      // Check results
+      const failedResults = results.filter(r => !r.success);
+      if (failedResults.length > 0) {
+        setMessage(`Some anchors failed: ${failedResults.map(r => r.error).join(', ')}`);
+      } else {
+        setMessage(`Successfully anchored ${results.length} items to blockchain!`);
+      }
+
+      // Update state with results
+      setChainState({
+        ...chainState,
+        anchorResults: [...chainState.anchorResults, ...results],
+      });
+    } catch (error) {
+      setMessage(
+        `Anchoring failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -130,6 +178,13 @@ const EventChainDemo: React.FC = () => {
             <button onClick={getAnchorMap} className="anchor-button">
               Get Anchor Map
             </button>
+            <button 
+              onClick={anchorToBlockchain} 
+              className="anchor-button"
+              disabled={!chainState || chainState.events.length === 0 || !anchorClient}
+            >
+              Anchor to Blockchain
+            </button>
             <button onClick={clearEvents} className="clear-button">
               Clear Events
             </button>
@@ -142,34 +197,72 @@ const EventChainDemo: React.FC = () => {
           )}
 
           <div className="events-list">
-            <h3>Events ({events.length})</h3>
-            {events.length === 0 ? (
+            <h3>Events ({chainState?.events.length || 0})</h3>
+            {!chainState || chainState.events.length === 0 ? (
               <p>No events yet. Add some events to see them here.</p>
             ) : (
               <div className="events-container">
-                {events.map((event, index) => (
-                  <div key={event.id} className="event-item">
+                {chainState.events.map((event, index) => (
+                  <div key={index} className="event-item">
                     <div className="event-header">
                       <span className="event-number">#{index + 1}</span>
                       <span className="event-timestamp">
-                        {new Date(event.timestamp).toLocaleString()}
+                        {new Date(event.timestamp || 0).toLocaleString()}
                       </span>
                     </div>
                     <div className="event-data">
                       <strong>Data:</strong>
-                      <pre>{JSON.stringify(event.data, null, 2)}</pre>
+                      <pre>{JSON.stringify(event.parsedData, null, 2)}</pre>
                     </div>
-                    {event.signature && (
-                      <div className="event-signature">
-                        <strong>Signature:</strong>
-                        <code>{event.signature.slice(0, 20)}...</code>
-                      </div>
-                    )}
+                    <div className="event-hash">
+                      <strong>Hash:</strong>
+                      <code>{event.hash.hex}</code>
+                    </div>
+                    <div className="event-signature">
+                      <strong>Signature:</strong>
+                      <code>{event.signature?.hex.slice(0, 20)}...</code>
+                    </div>
+                    <div className="event-verification">
+                      <strong>Verified:</strong>
+                      <span className={event.verifySignature() ? "verified" : "not-verified"}>
+                        {event.verifySignature() ? "✓ Valid" : "✗ Invalid"}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {chainState?.anchorResults && chainState.anchorResults.length > 0 && (
+            <div className="anchor-results">
+              <h3>Anchor Results ({chainState.anchorResults.length})</h3>
+              <div className="results-container">
+                {chainState.anchorResults.map((result, index) => (
+                  <div key={index} className={`result-item ${result.success ? 'success' : 'error'}`}>
+                    <div className="result-header">
+                      <span className="result-number">#{index + 1}</span>
+                      <span className="result-status">
+                        {result.success ? "✓ Success" : "✗ Failed"}
+                      </span>
+                    </div>
+                    {result.success && (
+                      <div className="result-details">
+                        <div><strong>Transaction:</strong> {result.transactionHash}</div>
+                        <div><strong>Block:</strong> {result.blockNumber}</div>
+                        <div><strong>Gas Used:</strong> {result.gasUsed?.toString()}</div>
+                      </div>
+                    )}
+                    {!result.success && (
+                      <div className="result-error">
+                        <strong>Error:</strong> {result.error}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
