@@ -5,15 +5,23 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { ethers } from "ethers";
+import {
+  createWalletClient,
+  createPublicClient,
+  custom,
+  type Address,
+} from "viem";
+import { baseSepolia } from "viem/chains";
 
 interface WalletContextType {
-  wallet: ethers.Signer | null;
-  address: string | null;
+  walletClient: any | null;
+  publicClient: any | null;
+  address: Address | null;
   isConnected: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
   error: string | null;
+  chainId: number;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -31,16 +39,17 @@ interface WalletProviderProps {
 }
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
-  const [wallet, setWallet] = useState<ethers.Signer | null>(null);
-  const [address, setAddress] = useState<string | null>(null);
+  const [walletClient, setWalletClient] = useState<any | null>(null);
+  const [publicClient, setPublicClient] = useState<any | null>(null);
+  const [address, setAddress] = useState<Address | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chainId, setChainId] = useState(baseSepolia.id);
 
   const connect = async () => {
     try {
       setError(null);
 
-      // Check if MetaMask is installed
       if (!window.ethereum) {
         throw new Error(
           "MetaMask is not installed. Please install MetaMask to use this app."
@@ -48,18 +57,30 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       }
 
       // Request account access
-      await window.ethereum.request({ method: "eth_requestAccounts" });
+      const [account] = (await window.ethereum.request({
+        method: "eth_requestAccounts",
+      })) as Address[];
 
-      // Create provider and signer
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const signerAddress = await signer.getAddress();
+      // Create wallet client
+      const wallet = createWalletClient({
+        account,
+        chain: baseSepolia,
+        transport: custom(window.ethereum),
+      });
 
-      setWallet(signer);
-      setAddress(signerAddress);
+      // Create public client
+      const publicClientInstance = createPublicClient({
+        chain: baseSepolia,
+        transport: custom(window.ethereum),
+      });
+
+      setWalletClient(wallet);
+      setPublicClient(publicClientInstance);
+      setAddress(account);
       setIsConnected(true);
+      setChainId(baseSepolia.id);
 
-      console.log("Wallet connected:", signerAddress);
+      console.log("Wallet connected:", account);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to connect wallet";
@@ -69,7 +90,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   };
 
   const disconnect = () => {
-    setWallet(null);
+    setWalletClient(null);
+    setPublicClient(null);
     setAddress(null);
     setIsConnected(false);
     setError(null);
@@ -84,11 +106,11 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
           disconnect();
         } else {
           // Account changed
-          setAddress(accounts[0]);
+          setAddress(accounts[0] as Address);
         }
       };
 
-      const handleChainChanged = () => {
+      const handleChainChanged = (chainId: string) => {
         // Reload the page when chain changes
         window.location.reload();
       };
@@ -107,12 +129,14 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   }, []);
 
   const value: WalletContextType = {
-    wallet,
+    walletClient,
+    publicClient,
     address,
     isConnected,
     connect,
     disconnect,
     error,
+    chainId,
   };
 
   return (
