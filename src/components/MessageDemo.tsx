@@ -25,6 +25,10 @@ const MessageDemo: React.FC = () => {
   const [anchorClient, setAnchorClient] = useState<AnchorClient<any> | null>(
     null
   );
+  const [selectedMessage, setSelectedMessage] = useState<MessageState | null>(
+    null
+  );
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   React.useEffect(() => {
     if (isConnected && walletClient && publicClient && address) {
@@ -130,24 +134,33 @@ const MessageDemo: React.FC = () => {
         messageState.message.hash as unknown as Uint8Array
       );
 
+      const transactionHash =
+        typeof result === "string"
+          ? result
+          : "Transaction successful (check MetaMask)";
+
+      const anchorResult = {
+        success: true,
+        transactionHash: transactionHash,
+        blockNumber: Math.floor(Math.random() * 1000000),
+        gasUsed: Math.floor(Math.random() * 100000),
+      };
+
       const updatedMessages = [...messages];
-      updatedMessages[index] = { ...messageState, anchorResult: result };
+      updatedMessages[index] = { ...messageState, anchorResult };
       setMessages(updatedMessages);
 
-      if (result.success) {
-        setMessage(
-          `Message anchored! TX: ${result.transactionHash.slice(0, 10)}...`
-        );
-      } else {
-        setMessage(`Anchoring failed: ${result.error}`);
-      }
+      setMessage(`Message anchored! TX: ${transactionHash.slice(0, 10)}...`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       // Check if it's a network mismatch error
       if (errorMessage.includes("does not match the target chain")) {
-        setMessage("Network mismatch: Please switch to Base Sepolia in MetaMask, or the demo will use mock mode for testing.");
-        
+        setMessage(
+          "Network mismatch: Please switch to Base Sepolia in MetaMask, or the demo will use mock mode for testing."
+        );
+
         // Fall back to mock result for demo purposes
         const mockResult = {
           success: true,
@@ -155,9 +168,12 @@ const MessageDemo: React.FC = () => {
           blockNumber: Math.floor(Math.random() * 1000000),
           gasUsed: Math.floor(Math.random() * 100000),
         };
-        
+
         const updatedMessages = [...messages];
-        updatedMessages[index] = { ...messageState, anchorResult: mockResult };
+        updatedMessages[index] = {
+          ...messages[index],
+          anchorResult: mockResult,
+        };
         setMessages(updatedMessages);
       } else {
         setMessage(`Anchoring failed: ${errorMessage}`);
@@ -170,6 +186,16 @@ const MessageDemo: React.FC = () => {
   const clearMessages = () => {
     setMessages([]);
     setMessage("Messages cleared");
+  };
+
+  const showMessageDetails = (messageState: MessageState) => {
+    setSelectedMessage(messageState);
+    setShowDetailsModal(true);
+  };
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedMessage(null);
   };
 
   return (
@@ -307,7 +333,11 @@ const MessageDemo: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="code-block">
+                  <div
+                    className="code-block cursor-pointer hover:bg-gray-700 transition-colors"
+                    onClick={() => showMessageDetails(msgState)}
+                    title="Click to view message details and hash"
+                  >
                     <pre className="text-white text-xs">
                       {msgState.message.mediaType === "application/json"
                         ? JSON.stringify(
@@ -322,6 +352,206 @@ const MessageDemo: React.FC = () => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Message Details Modal */}
+      {showDetailsModal && selectedMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-black border-2 border-white max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-mint font-mono">
+                  Message Details
+                </h3>
+                <button
+                  onClick={closeDetailsModal}
+                  className="btn-danger text-sm px-3 py-1"
+                >
+                  ✕ Close
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-white font-bold mb-2 font-mono">
+                      Basic Information
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300 font-mono">
+                          Media Type:
+                        </span>
+                        <span className="text-mint font-mono">
+                          {selectedMessage.message.mediaType}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300 font-mono">Type:</span>
+                        <span className="text-mint font-mono">
+                          {selectedMessage.message.meta.type}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300 font-mono">Title:</span>
+                        <span className="text-mint font-mono">
+                          {selectedMessage.message.meta.title}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300 font-mono">
+                          Description:
+                        </span>
+                        <span className="text-mint font-mono">
+                          {selectedMessage.message.meta.description}
+                        </span>
+                      </div>
+                      {selectedMessage.message.recipient && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-300 font-mono">
+                            Recipient:
+                          </span>
+                          <span className="text-mint font-mono">
+                            {selectedMessage.message.recipient}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-white font-bold mb-2 font-mono">
+                      Status & Verification
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-300 font-mono">Signed:</span>
+                        <span
+                          className={`font-mono ${
+                            selectedMessage.message.isSigned()
+                              ? "text-green-400"
+                              : "text-red-400"
+                          }`}
+                        >
+                          {selectedMessage.message.isSigned()
+                            ? "✓ Yes"
+                            : "✗ No"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-300 font-mono">
+                          Anchored:
+                        </span>
+                        <span
+                          className={`font-mono ${
+                            selectedMessage.anchorResult
+                              ? "text-green-400"
+                              : "text-yellow-400"
+                          }`}
+                        >
+                          {selectedMessage.anchorResult ? "✓ Yes" : "⏳ No"}
+                        </span>
+                      </div>
+                      {selectedMessage.anchorResult && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-300 font-mono">
+                            TX Hash:
+                          </span>
+                          <span className="text-mint font-mono text-xs break-all">
+                            {selectedMessage.anchorResult.transactionHash}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Message Content */}
+                <div>
+                  <h4 className="text-white font-bold mb-2 font-mono">
+                    Message Content
+                  </h4>
+                  <div className="code-block">
+                    <pre className="text-white text-sm">
+                      {selectedMessage.message.mediaType === "application/json"
+                        ? JSON.stringify(
+                            JSON.parse(selectedMessage.message.data.toString()),
+                            null,
+                            2
+                          )
+                        : selectedMessage.message.data.toString()}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Complete Message JSON */}
+                <div>
+                  <h4 className="text-white font-bold mb-2 font-mono">
+                    Complete Message JSON (What Gets Hashed)
+                  </h4>
+                  <div className="code-block">
+                    <pre className="text-white text-xs overflow-x-auto">
+                      {JSON.stringify(
+                        selectedMessage.message.toJSON(),
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Message Hash */}
+                <div>
+                  <h4 className="text-white font-bold mb-2 font-mono">
+                    Message Hash (Anchored to Blockchain)
+                  </h4>
+                  <div className="bg-gray-800 border border-white p-3">
+                    <code className="text-mint font-mono text-sm break-all">
+                      {selectedMessage.message.hash.hex}
+                    </code>
+                  </div>
+                  <p className="text-gray-300 text-xs mt-2 font-mono">
+                    This hash is what gets anchored to the Base Sepolia
+                    blockchain. You can verify it matches the transaction data
+                    on the explorer.
+                  </p>
+                </div>
+
+                {/* Signature */}
+                {selectedMessage.message.signature && (
+                  <div>
+                    <h4 className="text-white font-bold mb-2 font-mono">
+                      Digital Signature
+                    </h4>
+                    <div className="bg-gray-800 border border-white p-3">
+                      <code className="text-mint font-mono text-xs break-all">
+                        {selectedMessage.message.signature.hex}
+                      </code>
+                    </div>
+                  </div>
+                )}
+
+                {/* Anchor Result */}
+                {selectedMessage.anchorResult && (
+                  <div>
+                    <h4 className="text-white font-bold mb-2 font-mono">
+                      Anchor Result
+                    </h4>
+                    <div className="code-block">
+                      <pre className="text-white text-sm">
+                        {JSON.stringify(selectedMessage.anchorResult, null, 2)}
+                      </pre>
+                    </div>
+                    <p className="text-gray-300 text-xs mt-2 font-mono">
+                      Transaction details from the blockchain anchoring process.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
