@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useWallet } from "../contexts/WalletContext";
+import { useRelay } from "../contexts/RelayContext";
 import {
   Message,
   AnchorClient,
@@ -15,6 +16,7 @@ interface MessageState {
 
 const MessageDemo: React.FC = () => {
   const { walletClient, publicClient, address, isConnected } = useWallet();
+  const { relay, isConnected: relayConnected, error: relayError } = useRelay();
   const [messageType, setMessageType] = useState("text/plain");
   const [messageContent, setMessageContent] = useState("");
   const [messageTitle, setMessageTitle] = useState("");
@@ -76,6 +78,28 @@ const MessageDemo: React.FC = () => {
       return;
     }
 
+    if (!relay || !relayConnected) {
+      setMessage(
+        `Relay service not available. ${
+          relayError
+            ? `Error: ${relayError}`
+            : "Please check if relay is running."
+        }`
+      );
+      return;
+    }
+
+    // Validate recipient address if provided
+    if (messageRecipient.trim()) {
+      if (!/^0x[a-fA-F0-9]{40}$/.test(messageRecipient.trim())) {
+        setMessage("Please enter a valid Ethereum address (0x...)");
+        return;
+      }
+    } else {
+      setMessage("Please enter a recipient address to test message sending");
+      return;
+    }
+
     setIsLoading(true);
     setMessage("");
 
@@ -95,23 +119,54 @@ const MessageDemo: React.FC = () => {
 
       const msg = new Message(content, messageType, meta);
 
-      // Set recipient if provided
-      if (messageRecipient.trim()) {
-        msg.to(messageRecipient);
-      }
+      // Set recipient (now required)
+      msg.to(messageRecipient.trim());
 
+      // Sign the message
       await msg.signWith(signer);
 
-      setMessages((prev) => [...prev, { message: msg }]);
+      // Send message through relay
+      const sentMessage = await relay.send(msg);
+
+      setMessages((prev) => [...prev, { message: sentMessage }]);
 
       setMessageContent("");
       setMessageTitle("");
       setMessageRecipient("");
-      setMessage("Message sent and signed successfully!");
+      setMessage(
+        `Message sent successfully to ${messageRecipient}! Switch to that wallet to see the message.`
+      );
     } catch (error) {
       setMessage(
         `Error: ${
           error instanceof Error ? error.message : "Failed to send message"
+        }`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadMessages = async () => {
+    if (!relay || !relayConnected || !address) {
+      setMessage("Relay service or wallet not available");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      console.log("Loading messages for address:", address);
+      const receivedMessages = await relay.getMessages(address);
+      console.log("Received messages:", receivedMessages);
+      const messageStates = receivedMessages.map((msg) => ({ message: msg }));
+      setMessages((prev) => [...prev, ...messageStates]);
+      setMessage(`Loaded ${receivedMessages.length} messages from relay`);
+    } catch (error) {
+      setMessage(
+        `Error loading messages: ${
+          error instanceof Error ? error.message : "Failed to load messages"
         }`
       );
     } finally {
@@ -188,6 +243,11 @@ const MessageDemo: React.FC = () => {
     setMessage("Messages cleared");
   };
 
+  // Clear messages when wallet address changes
+  React.useEffect(() => {
+    setMessages([]);
+  }, [address]);
+
   const showMessageDetails = (messageState: MessageState) => {
     setSelectedMessage(messageState);
     setShowDetailsModal(true);
@@ -209,6 +269,22 @@ const MessageDemo: React.FC = () => {
           </p>
         </div>
       ) : (
+        <div className="mb-4 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+          <h3 className="text-blue-300 font-mono font-bold mb-2">
+            Testing Message Flow:
+          </h3>
+          <ol className="text-blue-200 font-mono text-sm space-y-1">
+            <li>
+              1. Connect Wallet A and send a message to Wallet B's address
+            </li>
+            <li>2. Switch to Wallet B in MetaMask</li>
+            <li>3. Click "Load Messages" to see messages sent to Wallet B</li>
+            <li>4. Switch back to Wallet A to send more messages</li>
+          </ol>
+        </div>
+      )}
+
+      {isConnected && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -279,6 +355,13 @@ const MessageDemo: React.FC = () => {
               className="btn-primary flex-1"
             >
               {isLoading ? "Sending..." : "Send Message"}
+            </button>
+            <button
+              onClick={loadMessages}
+              disabled={isLoading || !relayConnected}
+              className="btn-secondary"
+            >
+              Load Messages
             </button>
             <button onClick={clearMessages} className="btn-danger">
               Clear

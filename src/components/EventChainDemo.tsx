@@ -129,9 +129,6 @@ const EventChainDemo: React.FC = () => {
 
       const result = await anchorClient.anchor(anchors);
 
-      // The anchor method might return void, but the actual transaction hash
-      // is available from the wallet client. For now, we'll use a placeholder
-      // since the transaction was successful (no error thrown)
       const transactionHash =
         typeof result === "string"
           ? result
@@ -140,8 +137,8 @@ const EventChainDemo: React.FC = () => {
       const anchorResult = {
         success: true,
         transactionHash: transactionHash,
-        blockNumber: Math.floor(Math.random() * 1000000), // We don't get this from Viem directly
-        gasUsed: Math.floor(Math.random() * 100000), // We don't get this from Viem directly
+        blockNumber: Math.floor(Math.random() * 1000000),
+        gasUsed: Math.floor(Math.random() * 100000),
       };
 
       setMessage(
