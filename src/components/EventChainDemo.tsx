@@ -185,92 +185,103 @@ const EventChainDemo: React.FC = () => {
   };
 
   return (
-    <div className="card">
-      <h2 className="section-header">Event Chain</h2>
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h2 className="text-xl font-bold font-mono mb-6">Event Chain Demo</h2>
 
-      {!isConnected ? (
-        <div className="text-center py-8">
-          <p className="text-white font-mono">
-            Connect wallet to test event chains
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block mb-2">
-              <span className="text-white font-mono text-sm">
-                Event Data (JSON)
-              </span>
-            </label>
-            <textarea
-              value={eventData}
-              onChange={(e) => setEventData(e.target.value)}
-              placeholder='{"action": "user_login", "timestamp": 1234567890}'
-              rows={3}
-              className="input-field w-full resize-none"
-            />
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={addEvent}
-              disabled={isLoading || !eventData.trim()}
-              className="btn-primary flex-1"
-            >
-              {isLoading ? "Adding..." : "Add Event"}
-            </button>
-            <button
-              onClick={anchorToBlockchain}
-              disabled={
-                !chainState || chainState.events.length === 0 || !anchorClient
-              }
-              className="btn-success flex-1"
-            >
-              Anchor
-            </button>
-            <button onClick={clearEvents} className="btn-danger">
-              Clear
-            </button>
-          </div>
-
-          {message && (
-            <div className="text-mint font-mono text-sm">{message}</div>
-          )}
-
-          {chainState && chainState.events.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-white font-mono font-bold">
-                Events ({chainState.events.length})
-              </h3>
-              {chainState.events.map((event, index) => (
-                <div key={index} className="border border-white p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white font-mono text-sm">
-                      Event #{index + 1}
-                    </span>
-                    <span
-                      className={`status-badge ${
-                        event.isSigned() ? "status-connected" : "status-error"
-                      }`}
-                    >
-                      {event.isSigned() ? "✓" : "✗"}
-                    </span>
-                  </div>
-                  <div className="code-block">
-                    <pre className="text-white text-xs">
-                      {JSON.stringify(
-                        JSON.parse(event.data.toString()),
-                        null,
-                        2
-                      )}
-                    </pre>
-                  </div>
-                </div>
-              ))}
+        {!isConnected ? (
+          <div className="text-center py-8">
+            <div className="text-gray-400 font-mono">
+              Please connect your wallet to use Event Chain features
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div>
+              <label className="block mb-2">
+                <span className="text-white font-mono text-sm">
+                  Event Data (JSON)
+                </span>
+              </label>
+              <textarea
+                value={eventData}
+                onChange={(e) => setEventData(e.target.value)}
+                placeholder='{"action": "user_login", "timestamp": 1234567890}'
+                rows={4}
+                className="input-field w-full resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={addEvent}
+                disabled={isLoading || !eventData.trim()}
+                className="btn-primary flex-1"
+              >
+                {isLoading ? "Adding..." : "Add Event"}
+              </button>
+              <button
+                onClick={anchorToBlockchain}
+                disabled={
+                  !chainState || chainState.events.length === 0 || !anchorClient
+                }
+                className="btn-success flex-1"
+              >
+                Anchor to Blockchain
+              </button>
+              <button onClick={clearEvents} className="btn-danger">
+                Clear All
+              </button>
+            </div>
+
+            {message && (
+              <div className="text-mint font-mono text-sm p-3 bg-gray-900 rounded border border-gray-600">
+                {message}
+              </div>
+            )}
+
+            {chainState && chainState.events.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-white font-mono font-bold text-lg">
+                  Events ({chainState.events.length})
+                </h3>
+                <div className="space-y-3">
+                  {chainState.events.map((event, index) => (
+                    <div
+                      key={index}
+                      className="border border-gray-600 p-4 rounded bg-gray-900"
+                    >
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-white font-mono text-sm font-bold">
+                          Event #{index + 1}
+                        </span>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-mono ${
+                            event.isSigned()
+                              ? "bg-green-600 text-white"
+                              : "bg-red-600 text-white"
+                          }`}
+                        >
+                          {event.isSigned() ? "✓ Signed" : "✗ Unsigned"}
+                        </span>
+                      </div>
+                      <div className="bg-gray-800 p-3 rounded border border-gray-700">
+                        <pre className="text-green-400 text-xs overflow-auto">
+                          {JSON.stringify(
+                            JSON.parse(event.data.toString()),
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

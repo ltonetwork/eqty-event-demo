@@ -20,40 +20,37 @@ const WalletConnect: React.FC = () => {
     }
   };
 
-  return (
-    <div className="card">
-      <h2 className="section-header">Wallet</h2>
-
-      {!isConnected ? (
-        <div className="space-y-4">
-          <button onClick={connect} className="btn-primary w-full">
-            Connect Wallet
-          </button>
-          {error && (
-            <div className="text-red-400 font-mono text-sm">{error}</div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-white font-mono">Address:</span>
-              <span className="text-mint font-mono">
-                {formatAddress(address || "")}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-white font-mono">Network:</span>
-              <span className="text-mint font-mono">
-                {getChainName(chainId)}
-              </span>
-            </div>
+  if (!isConnected) {
+    return (
+      <div className="flex items-center space-x-2">
+        <button onClick={connect} className="btn-primary text-sm px-3 py-1">
+          Connect Wallet
+        </button>
+        {error && (
+          <div className="text-red-400 font-mono text-xs max-w-32 truncate">
+            {error}
           </div>
-          <button onClick={disconnect} className="btn-danger w-full">
-            Disconnect
-          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center space-x-3">
+      <div className="text-right">
+        <div className="text-white font-mono text-sm">
+          {formatAddress(address || "")}
         </div>
-      )}
+        <div className="text-gray-400 font-mono text-xs">
+          {getChainName(chainId)}
+        </div>
+      </div>
+      <button
+        onClick={disconnect}
+        className="text-gray-400 hover:text-white text-sm px-2 py-1 border border-gray-600 rounded hover:border-gray-500 transition-colors"
+      >
+        Disconnect
+      </button>
     </div>
   );
 };
